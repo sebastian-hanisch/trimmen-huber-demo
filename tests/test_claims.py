@@ -75,6 +75,7 @@ def test_h5_bounded_estimators_do_not_depend_on_d():
     has(f"ε = 10 %: Huber {de(min(huber))} bis {de(max(huber))} von d = {V.fmt_g(ds[0])} bis 10⁶, Median {de(R.distance_series('median', 0.1)[0])}; Catoni (λ × 1) {de(cat[0])} bei d = 3, "
         f"{de(cat[5])} bei d = 1000, {de(cat[6])} bei d = 10⁶; Mittel {de(mean_[0])} bis {de(mean_[-1])}")
     assert ds[5] == 1000.0 and ds[6] == 1e6 and max(R.distance_series("median", 0.1)) - min(R.distance_series("median", 0.1)) < 0.01
+    has(f"von d = 1000 auf d = 10⁶ um den Faktor {de(cat[6] / cat[5], 1)}")                       # Catoni wächst sehr langsam, nicht proportional (Faktor 1000 im Abstand)
 
 
 def test_h6_tails():
@@ -133,6 +134,9 @@ def test_h9_pitfalls():
     fe = p["float_edge"]
     has(f"`int(α·n)` weicht in {fe['differ']} von {fe['total']} Paaren ab (α = 0,29, n = 100: {fe['examples'][0][2]} statt {fe['examples'][0][3]})")
     has(f"Poisson(0,5): MAD = 0 in {de(100 * R.zero_scale_cell('poisson:0.5', 30)['zero_scale_share'][0], 1)} % (n = 30) und {de(100 * R.zero_scale_cell('poisson:0.5', 100)['zero_scale_share'][0], 1)} % (n = 100) der Stichproben")
+    from scipy.stats import binom                   # MAD = 0 genau dann, wenn mehr als die Hälfte der Werte 0 ist (P(0) = e^(−0,5))
+    p0 = float(np.exp(-0.5))
+    has(f"exakt nach der Binomialverteilung {de(100 * binom.sf(15, 30, p0), 1)} % und {de(100 * binom.sf(50, 100, p0), 1)} %")
     z = R.zero_scale_cell("poisson:0.5", 100)
     has(f"Poisson(0,5), n = 100: MAD = 0 in {de(100 * z['zero_scale_share'][0], 1)} % der Stichproben; Lage Median {de(z['location']['median'][0])}, Huber {de(z['location']['huber:1.345'][0])}, "
         f"Hodges–Lehmann {de(z['location']['hl'][0])}, Mittel {de(z['location']['mean'][0])}")

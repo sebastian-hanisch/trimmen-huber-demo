@@ -219,6 +219,8 @@ def verdict_e4(dist: str, ns, rmse: dict[str, list[float]], population: dict[str
         text += "Im Raster hat das Mittel nie einen kleineren RMSE gegen den Mittelwert als die Robusten."
     if "catoni:1" in rmse:
         text += f" Catoni (λ × 1) hat bei n = {ns[-1]} einen RMSE von {de(rmse['catoni:1'][-1], 3)} gegen {de(rmse['mean'][-1], 3)} beim Mittel."
+    if "σ = 2" in dist:
+        text += " Bei dieser Verteilung liegt die simulierte Streuung des Mittels unter der wahren: Die Vergleiche mit dem Mittel sind nicht belastbar."
     return "warning", text
 
 

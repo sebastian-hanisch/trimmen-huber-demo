@@ -193,8 +193,8 @@ with st.expander("🧰 Die Schätzer und ihre Parameter erklärt"):
 | **Trimmen $\alpha$** | $k = \lfloor \alpha n \rfloor$ Werte je Seite weglassen, Rest mitteln | $\alpha$ (Nutzer) | Treppe in $\alpha$ (bei $n = 10$ ist 5 % noch 0 Werte); **Klippe** bei Ausfallanteil $\varepsilon > \alpha$ (E2). |
 | **Winsorisieren $\alpha$** | $k$ Randwerte je Seite durch den nächsten behaltenen ersetzen | $\alpha$ (Nutzer) | Klippe bei $\varepsilon > \alpha$; liegt auf der Effizienz-gegen-Verzerrung-Kurve schlechter als Huber (E1); kann bei zweiseitigen Ausfällen schlechter als das Mittel sein (E2). |
 | **Huber $c$** | gewichtetes Mittel, Gewicht $\min(1, c/\lvert r \rvert)$ mit $r = (x - \mu)/s$ | $c$ (Nutzer), Skala $s$ (aus den Daten oder bekannt) | Skala 0 bei diskreten Daten: fällt auf den Median zurück (E6); die MAD-Schätzung kostet bei hohem Anteil (E6). |
-| **Hodges–Lehmann** | Median aller Walsh-Mittel $(x_i+x_j)/2$, $i \le j$ | – (kein Parameter) | **Klippe** zwischen 25 und 30 % Ausfallanteil, danach schlechter als das Mittel (E2); Aufwand $O(n^2)$. |
-| **Catoni** | Nullstelle von $\sum \psi(\lambda\,(x_i - \theta))$ mit logarithmisch wachsendem $\psi$ | $\lambda$ (Vielfaches der Definition), $\delta$ | Mit dem Wert aus der Definition liegt er bei Ausfällen nahe beim Mittel und wächst mit $d$ weiter, nur logarithmisch (E7); sein eigentlicher Zweck (Fehlerquantil bei Niveau $\delta$) ist hier nicht gemessen. |
+| **Hodges–Lehmann** | Median aller Walsh-Mittel $(x_i+x_j)/2$, $i \le j$ | – (kein Parameter) | **Klippe** zwischen 29 und 30 % Ausfallanteil (n = 100, d = 1000), danach bei großem Abstand schlechter als das Mittel (E2); Aufwand $O(n^2)$. |
+| **Catoni** | Nullstelle von $\sum \psi(\lambda\,(x_i - \theta))$ mit logarithmisch wachsendem $\psi$ | $\lambda$ (Vielfaches der Definition), $\delta$ | Mit dem Wert aus der Definition liegt er bei kleinem Abstand der Ausfälle nahe beim Mittel und wächst mit $d$ nur noch langsam (asymptotisch logarithmisch, E7); sein eigentlicher Zweck (Fehlerquantil bei Niveau $\delta$) ist hier nicht gemessen. |
         """
     )
 
@@ -271,7 +271,7 @@ _verdict(V.verdict_e3({s: R.distance_series(s, float(e3_eps)) for s in d_specs},
 
 # E4 ---------------------------------------------------------------------------------------------------------------------------------------
 st.subheader("🔬 E4: Worauf zielt der Schätzer, wenn die Daten schief sind?")
-st.markdown("Bei schiefen Lieferzeiten haben Mittelwert und Median verschiedene Werte, und jeder Schätzer zielt irgendwo dazwischen. Der **Bias** gegen den Mittelwert **schrumpft nicht mit n**, die Streuung schon; "
+st.markdown("Bei schiefen Lieferzeiten haben Mittelwert und Median verschiedene Werte, und jeder Schätzer mit festem Gewicht (Trimmen, Winsorisieren, Huber, Hodges–Lehmann, Median) zielt irgendwo dazwischen; Catoni mit dem λ der Definition geht mit wachsendem n gegen den Mittelwert. Der **Bias** gegen den Mittelwert **schrumpft nicht mit n**, die Streuung schon; "
             "deshalb gewinnt das Mittel ab einem n, wenn das Ziel der Mittelwert ist. Balken: die Lage des Schätzers an der Population (n → ∞, aus 4 × 1 Mio. Werten) und die Streuung bei dem gewählten n.")
 e4c1, e4c2 = st.columns(2)
 e4_dist = e4c1.selectbox("Verteilung", SKEW_PICK, index=1, key="e4_dist")
@@ -284,7 +284,7 @@ st.plotly_chart(build_rmse_by_n_chart(e4_dist, list(C.N_RASTER), rmse_series), w
 _fmt_table([{"Schätzer": RB.label(s), "Lage (Population)": pop[s], "Bias gegen den Mittelwert": R.target_value(e4_dist, int(e4_n), s, "bias"), "Streuung SD(T)": R.target_value(e4_dist, int(e4_n), s, "sd"),
              "RMSE gegen den Mittelwert": R.target_value(e4_dist, int(e4_n), s, "rmse_mean"), "RMSE gegen den Median": R.target_value(e4_dist, int(e4_n), s, "rmse_median")} for s in C.TARGET_SPECS],
            **{c: "%.3f" for c in ("Lage (Population)", "Bias gegen den Mittelwert", "Streuung SD(T)", "RMSE gegen den Mittelwert", "RMSE gegen den Median")})
-st.caption(f"{R.target_cell(e4_dist, int(e4_n))['runs_per_seed']} Läufe je Seed, vier Seeds. Bei Lognormal (σ = 2) ist selbst der Mittelwert-Schätzer stark verrauscht: Zahlen dort nur als Größenordnung lesen.")
+st.caption(f"{R.target_cell(e4_dist, int(e4_n))['runs_per_seed']} Läufe je Seed, vier Seeds. Bei Lognormal (σ = 2) ist selbst der Mittelwert-Schätzer stark verrauscht, und seine simulierte Streuung liegt unter der wahren: Zahlen dort nur als Größenordnung lesen, Vergleiche mit dem Mittel sind dort nicht belastbar.")
 _verdict(V.verdict_e4(e4_dist, list(C.N_RASTER), rmse_series, pop, part4["cells"][0]["mean"], part4["cells"][0]["median"], [R.target_value(e4_dist, k, "trim:0.1", "bias") for k in C.N_RASTER]))
 
 # E5 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -322,7 +322,7 @@ st.markdown(f"**Rechnung.** Huber braucht eine Iteration: größte Zahl der Schr
 # E7 ---------------------------------------------------------------------------------------------------------------------------------------
 st.subheader("🔬 E7: Catoni und das Gewicht λ")
 st.markdown("Catoni nach der Definition aus dem Gedächtnis (Quelle nicht eingesehen): Mit dem Wert λ × 1 liegt die Verschiebung bei kleinem Abstand nahe beim Mittel (Tabelle, Spalte d = 5) und wächst mit dem Abstand weiter, "
-            "aber logarithmisch statt proportional; erst ein Vielfaches λ macht ihn robuster, und er bleibt auch dann nicht beschränkt. "
+            "aber sehr langsam (asymptotisch logarithmisch) statt proportional; erst ein Vielfaches λ macht ihn robuster, und er bleibt auch dann nicht beschränkt. "
             "Sein eigentlicher Zweck, ein enges Fehlerquantil bei Niveau δ unter endlicher Varianz, ist hier **nicht gemessen** (das gehört zu Median-of-Means). n = 100, 2000 Läufe je Seed.")
 ce = R.catoni_part()["efficiency"]
 _fmt_table([{"Schätzer": RB.label(s), "Effizienz": R.catoni_efficiency(s), "Verschiebung (ε = 10 %, d = 5)": R.catoni_shift(s, 0), "Verschiebung (ε = 10 %, d = 1000)": R.catoni_shift(s, 1),
